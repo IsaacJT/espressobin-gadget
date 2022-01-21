@@ -1,0 +1,21 @@
+name: Snapcraft
+
+on:
+  push:
+    branches: [ 20-arm64 ]
+  pull_request:
+    branches: [ 20-arm64 ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-20.04
+
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: snap
+      run: snap install --classic snapcraft
+      
+    - name: snapcraft
+      run: snapcraft --destructive-mode
