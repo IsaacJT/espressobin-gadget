@@ -62,6 +62,7 @@ parts:
   atf:
     after: 
       - a3700-utils
+      - mvddr
       - u-boot
     plugin: nil
     source: https://github.com/MarvellEmbeddedProcessors/atf-marvell.git
