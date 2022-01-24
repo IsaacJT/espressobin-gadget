@@ -7,7 +7,8 @@ type: gadget
 base: core20
 assumes: [kernel-assets]
 architectures:
-  - build-on: [amd64, arm64]
+  - build-on: 
+      - amd64
     run-on: arm64
 
 package-repositories:
@@ -16,47 +17,74 @@ package-repositories:
 
 confinement: strict
 grade: stable
+
 parts:
-  gadget:
+  u-boot:
+    plugin: make
+    source: https://github.com/u-boot/u-boot.git
+    source-type: git
+    source-branch: v2022.01
+    source-depth: 1
+    override-build: |
+      make ARCH=arm mvebu_espressobin-88f3720_defconfig
+      make ARCH=arm CROSS_COMPILE=aarch64-linux-gnu- -j $(nproc)
+      cp u-boot.bin ${SNAPCRAFT_PART_INSTALL}/
+      touch ${SNAPCRAFT_PART_INSTALL}/uboot.conf
+    build-packages:
+      - libpython2.7-dev
+      - bc
+  boot-scr:
     plugin: nil
     source: .
     override-build: |
-      set -x
-      # unconditionally set the arch-triplet since this snapcraft.yaml will 
-      # always be used to produce an armhf snap
-      BUILD_ARCH_TRIPLET=aarch64-linux-gnu
-      # but only use the cross-compiling sources when actually cross compiling
-      # as otherwise its just safer to use the build environment - it offers
-      # much more flexibility.
-      if [ "$SNAPCRAFT_ARCH_TRIPLET" = "x86_64-linux-gnu" ] || [ -z "$SNAPCRAFT_ARCH_TRIPLET" ]; then
-        OPTIONAL_ARGS="SOURCES_HOST=\"./helpers/cross-sources.list\" SOURCES_D_HOST=\"./helpers\""
-      fi
-      make -C $SNAPCRAFT_PART_SRC core \
-        DESTDIR=${SNAPCRAFT_PART_INSTALL} \
-        ARCH="$(dpkg-architecture -t $BUILD_ARCH_TRIPLET -q DEB_HOST_ARCH)" \
-        ${OPTIONAL_ARGS:-}
-    prime:
-      - boot-assets/*
-      - uboot.conf
-      - boot.sel
+      mkimage -T script -C none -n 'Boot Script' -d boot.scr.in ${SNAPCRAFT_PART_INSTALL}/boot.scr
     build-packages:
+      - sed
       - u-boot-tools
-      - lsb-release
-      - dpkg-dev
-      - make
-      - libgdk-pixbuf2.0-dev
-      - automake
-      - autoconf
-      - gcc
-      - otf2bdf
-      - libbogl-dev
-      - ttf-ubuntu-font-family
-      - cpio
-      - findutils
-      - liblz4-tool
-      - libc-dev
-      - try:
-          - gcc-aarch64-linux-gnu:amd64
-          - libc6-dev-arm64-cross:amd64
+  mvddr:
+    plugin: nil
+    source: https://github.com/MarvellEmbeddedProcessors/mv-ddr-marvell.git
+    source-type: git
+    source-branch: mv_ddr-armada-18.12
+    source-depth: 1
+    override-build: |
+      echo This package will be built by atf
+  a3700-utils:
+    plugin: nil
+    source: https://github.com/MarvellEmbeddedProcessors/A3700-utils-marvell.git
+    source-type: git
+    source-branch: A3700_utils-armada-18.12
+    source-depth: 1
+    override-build: |
+      echo This package will be built by atf
+  atf:
+    after: 
+      - a3700-utils
+      - u-boot
+    plugin: nil
+    source: https://github.com/MarvellEmbeddedProcessors/atf-marvell.git
+    source-type: git
+    source-branch: atf-v1.5-armada-18.12
+    source-depth: 1 
+    # See http://wiki.espressobin.net/tiki-index.php?page=Build+From+Source+-+Bootloader#Build_examples for more info
+    override-build: | 
+      make DEBUG=1 USE_COHERENT_MEM=0 LOG_LEVEL=20 SECURE=0 \
+        CLOCKSPRESET=CPU_1000_DDR_800 DDR_TOPOLOGY=2 \
+        BOOTDEV=SPINOR PARTNUM=0 CROSS_COMPILE=aarch64-linux-gnu- \
+        WTP=${SNAPCRAFT_PART_SRC}/../../a3700-utils/build \
+        MV_DDR_PATH=${SNAPCRAFT_PART_SRC}/../../mvddr/build \
+        PLAT=a3700 BL33=${SNAPCRAFT_PART_SRC}/../../u-boot/install/u-boot.bin all fip
+      cp ${SNAPCRAFT_PART_BUILD}/build/a3700/debug/{flash-image.bin,uart-images.tgz} ${SNAPCRAFT_PART_INSTALL}/
+    build-packages:
+      # This packages builds a ARM binary for the onboard controller (Cortex M3)
+      - gcc-arm-linux-gnueabi
+      
 
 slots: {}
+
+build-packages:
+  - build-essential
+  - on amd64:
+    - gcc-aarch64-linux-gnu
+  - else:
+    - gcc

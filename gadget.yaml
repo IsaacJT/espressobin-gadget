@@ -5,30 +5,23 @@ volumes:
     structure:
       - name: ubuntu-seed
         role: system-seed
-        filesystem: vfat
+        filesystem: ext4
         type: 0C
         size: 1200M
         content:
-          - source: $kernel:dtbs/dtbs/
+          - source: flash-image.bin
             target: /
-          - source: boot-assets/
+          - source: uart-images.tgz
+            target: /
+          - source: boot.scr
             target: /
       - name: ubuntu-boot
         role: system-boot
-        filesystem: vfat
+        filesystem: ext4
         type: 0C
         # whats the appropriate size?
         size: 750M
-        content:
-          # TODO:UC20: install the boot.sel via snapd instead of via the gadget
-          - source: boot.sel
-            target: uboot/ubuntu/boot.sel
-      # NOTE: ubuntu-save is optional for unencrypted devices like the pi, so
-      # this structure can be dropped in favor of a different partition for
-      # users who wish to instead use a different partition, since with MBR we
-      # are limited to only 4 primary partitions.
-      # TODO: look into switching over to GPT, the pi bootloader firmware now
-      #       has support for this
+        content: []
       - name: ubuntu-save
         role: system-save
         filesystem: ext4
