@@ -49,6 +49,7 @@ parts:
     source-depth: 1
     override-build: |
       echo This package will be built by atf
+      cp -r ${SNAPCRAFT_PART_SRC}/* ${SNAPCRAFT_PART_BUILD}/
   a3700-utils:
     plugin: nil
     source: https://github.com/MarvellEmbeddedProcessors/A3700-utils-marvell.git
@@ -57,6 +58,7 @@ parts:
     source-depth: 1
     override-build: |
       echo This package will be built by atf
+      cp -r ${SNAPCRAFT_PART_SRC}/* ${SNAPCRAFT_PART_BUILD}/
   atf:
     after: 
       - a3700-utils
