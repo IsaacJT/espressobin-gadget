@@ -25,6 +25,10 @@ parts:
     source-type: git
     source-branch: v2022.01
     source-depth: 1
+    override-pull: |
+      snapcraftctl pull
+      git am ${SNAPCRAFT_PROJECT_DIR}/u-boot/0001-arm-mvebu-Updated-environment-for-Ubuntu-Core.patch
+      git am ${SNAPCRAFT_PROJECT_DIR}/u-boot/0002-arm-mvebu-Enable-support-for-FIT-images.patch
     override-build: |
       make ARCH=arm mvebu_espressobin-88f3720_defconfig 
       make ARCH=arm CROSS_COMPILE=aarch64-linux-gnu- -j $(nproc)
@@ -41,7 +45,7 @@ parts:
     plugin: nil
     source: .
     override-build: |
-      mkimage -T script -C none -n 'Boot Script' -d boot.scr.in ${SNAPCRAFT_PART_INSTALL}/boot.scr
+      mkimage -T script -C none -n 'Boot Script' -d ${SNAPCRAFT_PROJECT_DIR}/u-boot/boot.scr.in ${SNAPCRAFT_PART_INSTALL}/boot.scr
     build-packages:
       - sed
       - u-boot-tools

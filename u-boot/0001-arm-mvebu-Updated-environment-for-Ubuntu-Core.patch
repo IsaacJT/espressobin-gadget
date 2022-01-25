@@ -1,0 +1,51 @@
+From e4fd0a2219b647c939be1bd2e57ded622c7632ee Mon Sep 17 00:00:00 2001
+From: Isaac True <isaac.true@canonical.com>
+Date: Tue, 25 Jan 2022 16:28:08 +0100
+Subject: [PATCH 1/2] arm: mvebu: Updated environment for Ubuntu Core
+
+Signed-off-by: Isaac True <isaac.true@canonical.com>
+---
+ include/configs/mvebu_armada-37xx.h | 21 ++++++++++-----------
+ 1 file changed, 10 insertions(+), 11 deletions(-)
+
+diff --git a/include/configs/mvebu_armada-37xx.h b/include/configs/mvebu_armada-37xx.h
+index e7f7e772fc..fbda56b1c8 100644
+--- a/include/configs/mvebu_armada-37xx.h
++++ b/include/configs/mvebu_armada-37xx.h
+@@ -68,7 +68,10 @@
+ 	func(PXE, pxe, na) \
+ 	func(DHCP, dhcp, na)
+ 
+-#include <config_distro_bootcmd.h>
++#ifdef CONFIG_BOOTCOMMAND
++#undef CONFIG_BOOTCOMMAND
++#endif
++#define CONFIG_BOOTCOMMAND "mmc dev 0; load ${scriptintf} ${scriptdev}:${scriptpart} ${scriptaddr} ${scriptname}; source ${scriptaddr}"
+ 
+ /* filler for default values filled by board_early_init_f() */
+ #define ENV_RW_FILLER \
+@@ -79,16 +82,12 @@
+ 	"\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0" /* for fdtfile= */ \
+ 	""
+ 
+-/* fdt_addr and kernel_addr are needed for existing distribution boot scripts */
+-#define CONFIG_EXTRA_ENV_SETTINGS	\
+-	"scriptaddr=0x6d00000\0"	\
+-	"pxefile_addr_r=0x6e00000\0"	\
+-	"fdt_addr=0x6f00000\0"		\
+-	"fdt_addr_r=0x6f00000\0"	\
+-	"kernel_addr=0x7000000\0"	\
+-	"kernel_addr_r=0x7000000\0"	\
+-	"ramdisk_addr_r=0xa000000\0"	\
+-	BOOTENV \
++#define CONFIG_EXTRA_ENV_SETTINGS \
++	"scriptintf=mmc\0"            \
++	"scriptdev=0\0"               \
++	"scriptpart=1\0"              \
++	"scriptaddr=0x6d00000\0"      \
++	"scriptname=boot.scr\0"       \
+ 	ENV_RW_FILLER
+ 
+ #endif /* _CONFIG_MVEBU_ARMADA_37XX_H */
+-- 
+2.25.1
