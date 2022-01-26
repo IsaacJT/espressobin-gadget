@@ -1,43 +1,45 @@
-name: espressobin
+# SPDX-License-Identifier: GPL-2.0
+# Copyright (C) 2021 Canonical Ltd
+
+name: iotdevice-espressobin-gadget
 version: 20-1
 summary: EspressoBin gadget
 description: |
   Support files for booting EspressoBin v5.
 type: gadget
 base: core20
-assumes: [kernel-assets]
+assumes: 
+  - kernel-assets
 architectures:
   - build-on: 
       - amd64
+      - arm64
     run-on: arm64
 
 package-repositories:
   - type: apt
-    ppa: snappy-dev/image
+    architectures:
+      - arm64
+    components: 
+      - universe 
+    suites: 
+      - focal-updates
+    key-id: 78E1918602959B9C59103100F1831DDAFC42E99D
+    url: http://ports.ubuntu.com/
 
 confinement: strict
 grade: stable
 
 parts:
   u-boot:
-    plugin: make
-    source: https://github.com/u-boot/u-boot.git
-    source-type: git
-    source-branch: v2022.01
-    source-depth: 1
-    override-pull: |
-      snapcraftctl pull
-      git am ${SNAPCRAFT_PROJECT_DIR}/u-boot/0001-arm-mvebu-Updated-environment-for-Ubuntu-Core.patch
-      git am ${SNAPCRAFT_PROJECT_DIR}/u-boot/0002-arm-mvebu-Enable-support-for-FIT-images.patch
-    override-build: |
-      make ARCH=arm mvebu_espressobin-88f3720_defconfig 
-      make ARCH=arm CROSS_COMPILE=aarch64-linux-gnu- -j $(nproc)
-      cp ${SNAPCRAFT_PART_BUILD}/u-boot.bin ${SNAPCRAFT_PART_INSTALL}/
-      tools/mkenvimage -r -s 4096 -o ${SNAPCRAFT_PART_INSTALL}/boot.sel - < /dev/null
-      touch ${SNAPCRAFT_PART_INSTALL}/uboot.conf
+    plugin: nil
     build-packages:
-      - libpython2.7-dev
-      - bc
+      - u-boot-tools 
+    stage-packages:
+      - u-boot-mvebu
+    override-build: |
+      mkenvimage -r -s 4096 -o ${SNAPCRAFT_PART_INSTALL}/boot.sel - < /dev/null
+      touch ${SNAPCRAFT_PART_INSTALL}/uboot.conf
     prime:
         - boot.sel
         - uboot.conf
@@ -53,7 +55,7 @@ parts:
     plugin: nil
     source: https://github.com/MarvellEmbeddedProcessors/mv-ddr-marvell.git
     source-type: git
-    source-branch: mv_ddr-armada-18.12
+    source-branch: master
     source-depth: 1
     override-build: |
       echo This package will be built by atf
@@ -62,10 +64,26 @@ parts:
     plugin: nil
     source: https://github.com/MarvellEmbeddedProcessors/A3700-utils-marvell.git
     source-type: git
-    source-branch: A3700_utils-armada-18.12
+    source-branch: master
     source-depth: 1
+    build-packages:
+      - libcrypto++-dev
     override-build: |
-      echo This package will be built by atf
+      # Host tools which do not need to be cross-compiled
+      make -C wtptp/src/TBB_Linux -f TBB_linux.mak \
+        INCDIR=/usr/include/crypto++/ \
+        -j $(nproc)
+      make -C wtptp/src/Wtpdownloader_Linux -f makefile.mk \
+        -j $(nproc)
+
+      # Need to copy the compiled binaries to where the ATF build process expects it to be
+      mkdir -p ${SNAPCRAFT_PART_BUILD}/wtptp/linux
+      cp ${SNAPCRAFT_PART_BUILD}/wtptp/src/TBB_Linux/release/TBB_linux \
+        ${SNAPCRAFT_PART_BUILD}/wtptp/linux/tbb_linux
+      cp ${SNAPCRAFT_PART_BUILD}/wtptp/src/Wtpdownloader_Linux/WtpDownload_linux \
+        ${SNAPCRAFT_PART_BUILD}/wtptp/linux/WtpDownload_linux
+
+      # The rest of this package will be built by atf; copy sources
       cp -r ${SNAPCRAFT_PART_SRC}/* ${SNAPCRAFT_PART_BUILD}/
   atf:
     after: 
@@ -79,14 +97,18 @@ parts:
     source-depth: 1 
     # See http://wiki.espressobin.net/tiki-index.php?page=Build+From+Source+-+Bootloader#Build_examples for more info
     override-build: | 
+      # This build only supports the 1GB DDR3 variant
       make DEBUG=1 USE_COHERENT_MEM=0 LOG_LEVEL=20 SECURE=0 \
         CLOCKSPRESET=CPU_1000_DDR_800 DDR_TOPOLOGY=2 \
         BOOTDEV=SPINOR PARTNUM=0 CROSS_COMPILE=aarch64-linux-gnu- \
         WTP=${SNAPCRAFT_PART_SRC}/../../a3700-utils/build \
         MV_DDR_PATH=${SNAPCRAFT_PART_SRC}/../../mvddr/build \
-        PLAT=a3700 BL33=${SNAPCRAFT_PART_SRC}/../../u-boot/install/u-boot.bin all fip
+        PLAT=a3700 \
+        BL33=${SNAPCRAFT_PART_SRC}/../../u-boot/install/usr/lib/u-boot/mvebu_espressobin-88f3720/u-boot.bin \
+        all fip
       cp ${SNAPCRAFT_PART_BUILD}/build/a3700/debug/{flash-image.bin,uart-images.tgz} ${SNAPCRAFT_PART_INSTALL}/
     build-packages:
+      - libssl-dev
       # This packages builds a ARM binary for the onboard controller (Cortex M3)
       - gcc-arm-linux-gnueabi
       
