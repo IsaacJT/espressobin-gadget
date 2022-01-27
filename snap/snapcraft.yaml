@@ -1,17 +1,17 @@
 # SPDX-License-Identifier: GPL-2.0
 # Copyright (C) 2021 Canonical Ltd
 
-name: iotdevice-espressobin-gadget
+name: iotdevice-marvell-espressobin-gadget
 version: 20-1
 summary: EspressoBin gadget
 description: |
   Support files for booting EspressoBin v5.
 type: gadget
 base: core20
-assumes: 
+assumes:
   - kernel-assets
 architectures:
-  - build-on: 
+  - build-on:
       - amd64
       - arm64
     run-on: arm64
@@ -20,9 +20,9 @@ package-repositories:
   - type: apt
     architectures:
       - arm64
-    components: 
-      - universe 
-    suites: 
+    components:
+      - universe
+    suites:
       - focal-updates
     key-id: 78E1918602959B9C59103100F1831DDAFC42E99D
     url: http://ports.ubuntu.com/
@@ -34,7 +34,7 @@ parts:
   u-boot:
     plugin: nil
     build-packages:
-      - u-boot-tools 
+      - u-boot-tools
     stage-packages:
       - u-boot-mvebu
     override-build: |
@@ -86,7 +86,7 @@ parts:
       # The rest of this package will be built by atf; copy sources
       cp -r ${SNAPCRAFT_PART_SRC}/* ${SNAPCRAFT_PART_BUILD}/
   atf:
-    after: 
+    after:
       - a3700-utils
       - mvddr
       - u-boot
@@ -94,9 +94,9 @@ parts:
     source: https://github.com/MarvellEmbeddedProcessors/atf-marvell.git
     source-type: git
     source-branch: atf-v1.5-armada-18.12
-    source-depth: 1 
+    source-depth: 1
     # See http://wiki.espressobin.net/tiki-index.php?page=Build+From+Source+-+Bootloader#Build_examples for more info
-    override-build: | 
+    override-build: |
       # This build only supports the 1GB DDR3 variant
       make DEBUG=1 USE_COHERENT_MEM=0 LOG_LEVEL=20 SECURE=0 \
         CLOCKSPRESET=CPU_1000_DDR_800 DDR_TOPOLOGY=2 \
@@ -111,7 +111,7 @@ parts:
       - libssl-dev
       # This packages builds a ARM binary for the onboard controller (Cortex M3)
       - gcc-arm-linux-gnueabi
-      
+
 
 slots: {}
 
