@@ -11,10 +11,8 @@ base: core20
 assumes:
   - kernel-assets
 architectures:
-  - build-on:
-      - amd64
-      - arm64
-    run-on: arm64
+  # Cross-compiling on amd64 is currently broken
+  - build-on: arm64
 
 package-repositories:
   - type: apt
