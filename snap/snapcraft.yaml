@@ -1,4 +1,4 @@
-name: espressobin
+name: iotdevice-marvell-espressobin-gadget
 version: 20-1
 summary: EspressoBin gadget
 description: |
@@ -7,8 +7,9 @@ type: gadget
 base: core20
 assumes: [kernel-assets]
 architectures:
-  - build-on: 
+  - build-on:
       - amd64
+      - arm64
     run-on: arm64
 
 package-repositories:
@@ -30,7 +31,7 @@ parts:
       git am ${SNAPCRAFT_PROJECT_DIR}/u-boot/0001-arm-mvebu-Updated-environment-for-Ubuntu-Core.patch
       git am ${SNAPCRAFT_PROJECT_DIR}/u-boot/0002-arm-mvebu-Enable-support-for-FIT-images.patch
     override-build: |
-      make ARCH=arm mvebu_espressobin-88f3720_defconfig 
+      make ARCH=arm mvebu_espressobin-88f3720_defconfig
       make ARCH=arm CROSS_COMPILE=aarch64-linux-gnu- -j $(nproc)
       cp ${SNAPCRAFT_PART_BUILD}/u-boot.bin ${SNAPCRAFT_PART_INSTALL}/
       tools/mkenvimage -r -s 4096 -o ${SNAPCRAFT_PART_INSTALL}/boot.sel - < /dev/null
@@ -53,7 +54,7 @@ parts:
     plugin: nil
     source: https://github.com/MarvellEmbeddedProcessors/mv-ddr-marvell.git
     source-type: git
-    source-branch: mv_ddr-armada-18.12
+    source-branch: master
     source-depth: 1
     override-build: |
       echo This package will be built by atf
@@ -62,13 +63,29 @@ parts:
     plugin: nil
     source: https://github.com/MarvellEmbeddedProcessors/A3700-utils-marvell.git
     source-type: git
-    source-branch: A3700_utils-armada-18.12
+    source-branch: master
     source-depth: 1
+    build-packages:
+      - libcrypto++-dev
     override-build: |
-      echo This package will be built by atf
+      # Host tools which do not need to be cross-compiled
+      make -C wtptp/src/TBB_Linux -f TBB_linux.mak \
+        INCDIR=/usr/include/crypto++/ \
+        -j $(nproc)
+      make -C wtptp/src/Wtpdownloader_Linux -f makefile.mk \
+        -j $(nproc)
+
+      # Need to copy the compiled binaries to where the ATF build process expects it to be
+      mkdir -p ${SNAPCRAFT_PART_BUILD}/wtptp/linux
+      cp ${SNAPCRAFT_PART_BUILD}/wtptp/src/TBB_Linux/release/TBB_linux \
+        ${SNAPCRAFT_PART_BUILD}/wtptp/linux/tbb_linux
+      cp ${SNAPCRAFT_PART_BUILD}/wtptp/src/Wtpdownloader_Linux/WtpDownload_linux \
+        ${SNAPCRAFT_PART_BUILD}/wtptp/linux/WtpDownload_linux
+
+      # The rest of this package will be built by atf; copy sources
       cp -r ${SNAPCRAFT_PART_SRC}/* ${SNAPCRAFT_PART_BUILD}/
   atf:
-    after: 
+    after:
       - a3700-utils
       - mvddr
       - u-boot
@@ -76,22 +93,51 @@ parts:
     source: https://github.com/MarvellEmbeddedProcessors/atf-marvell.git
     source-type: git
     source-branch: atf-v1.5-armada-18.12
-    source-depth: 1 
+    source-depth: 1
     # See http://wiki.espressobin.net/tiki-index.php?page=Build+From+Source+-+Bootloader#Build_examples for more info
-    override-build: | 
+    override-build: |
+      # This build only supports the 1GB DDR3 variant
       make DEBUG=1 USE_COHERENT_MEM=0 LOG_LEVEL=20 SECURE=0 \
         CLOCKSPRESET=CPU_1000_DDR_800 DDR_TOPOLOGY=2 \
         BOOTDEV=SPINOR PARTNUM=0 CROSS_COMPILE=aarch64-linux-gnu- \
         WTP=${SNAPCRAFT_PART_SRC}/../../a3700-utils/build \
         MV_DDR_PATH=${SNAPCRAFT_PART_SRC}/../../mvddr/build \
-        PLAT=a3700 BL33=${SNAPCRAFT_PART_SRC}/../../u-boot/install/u-boot.bin all fip
+        PLAT=a3700 \
+        BL33=${SNAPCRAFT_PART_SRC}/../../u-boot/install/u-boot.bin \
+        all fip
       cp ${SNAPCRAFT_PART_BUILD}/build/a3700/debug/{flash-image.bin,uart-images.tgz} ${SNAPCRAFT_PART_INSTALL}/
-    build-packages:
-      # This packages builds a ARM binary for the onboard controller (Cortex M3)
-      - gcc-arm-linux-gnueabi
-      
+  # If the prepare-device step is not required (i.e. not using serial-vault)
+  # then comment this section out
+  prepare-device:
+    plugin: nil
+    override-build: |
+      echo "Building the 'prepare-device' hook ..."
 
-slots: {}
+      if [ -z "${MODEL_APIKEY}" ]; then
+        echo "Please define MODEL_APIKEY for building this gadget."
+        exit 1
+      fi
+      if [ -z "${MODEL_APIURL}" ]; then
+        echo "Please define MODEL_APIURL for building this gadget."
+        exit 1
+      fi
+
+      mkdir -p snap/hooks/
+
+      cat << EOF > snap/hooks/prepare-device
+      #!/bin/sh -ux
+      mkdir -p \$SNAP_COMMON
+      exec >> \$SNAP_COMMON/prepare-device-hook.log 2>&1
+      product_serial=\$(date -Is)
+      echo "product_serial:[\$product_serial]"
+      snapctl set registration.proposed-serial="\"\${product_serial}\""
+      snapctl set device-service.url="${MODEL_APIURL}"
+      snapctl set device-service.headers='{"api-key": "${MODEL_APIKEY}"}'
+      EOF
+
+      chmod +x snap/hooks/prepare-device
+      mkdir -p ${SNAPCRAFT_PART_INSTALL}/snap/hooks
+      cp snap/hooks/prepare-device ${SNAPCRAFT_PART_INSTALL}/snap/hooks
 
 build-packages:
   - build-essential
