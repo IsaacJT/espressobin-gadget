@@ -2,9 +2,9 @@
 setenv devtype mmc
 # The device number of the given type
 setenv devnum 0
-# The ubuntu-seed partition 
+# The ubuntu-seed partition
 setenv seedpart 1
-# The ubuntu-boot partition 
+# The ubuntu-boot partition
 setenv bootpart 2
 # Address to load the config to
 setenv config_addr_r 0xa00000
@@ -17,13 +17,15 @@ setenv ramdisk_addr_r 0x8000000
 # Kernel image filename
 setenv kernel_name kernel.img
 # Ramdisk filename
-setenv ramdisk_name initrd.img 
+setenv ramdisk_name initrd.img
 # FDT filename
 setenv fdt_name dtbs/armada-3720-espressobin.dtb
 # fitImage filename
 setenv fitimage_name fitImage
 # Use fitImage
 setenv use_fitimage 0
+# Address to decompress the kernel image to.
+setenv kernel_comp_addr_r 0x20000000
 
 echo "Loading ubuntu-seed configuration..."
 load ${devtype} ${devnum}:${seedpart} ${config_addr_r} uboot/ubuntu/boot.sel
@@ -49,6 +51,8 @@ if test "${use_fitimage}" = "0"
 then
     echo "Loading ${prefix}${kernel_name}..."
     load ${devtype} ${devnum}:${seedpart} ${kernel_addr_r} ${prefix}${kernel_name}
+    # Maximum size of the decompressed kernel
+    setenv kernel_comp_size ${filesize}
     echo "Loading ${prefix}${fdt_name}..."
     load ${devtype} ${devnum}:${seedpart} ${fdt_addr_r} ${prefix}${fdt_name}
     echo "Loading ${prefix}${ramdisk_name}..."
