@@ -5,9 +5,9 @@ volumes:
     structure:
       - name: ubuntu-seed
         role: system-seed
-        filesystem: ext4
+        filesystem: vfat
         type: 0C
-        size: 1200M
+        size: 1.5G
         content:
           - source: flash-image.bin
             target: /
@@ -32,4 +32,4 @@ volumes:
         role: system-data
         filesystem: ext4
         type: 83,0FC63DAF-8483-4772-8E79-3D69D8477DE4
-        size: 1500M
+        size: 3G
