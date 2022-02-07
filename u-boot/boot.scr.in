@@ -41,8 +41,10 @@ then
     setenv kernel_bootpart "${bootpart}"
     if test "${snapd_recovery_mode}" = "try"
     then
+        echo "Trying to boot with ${snap_kernel}"
         setenv prefix "uboot/ubuntu/${snap_try_kernel}/"
     else
+        echo "Using ${snap_kernel}"
         setenv prefix "uboot/ubuntu/${snap_kernel}/"
     fi
 else
