@@ -7,7 +7,7 @@ volumes:
         role: system-seed
         filesystem: vfat
         type: 0C
-        size: 1.5G
+        size: 1500M
         content:
           - source: flash-image.bin
             target: /
