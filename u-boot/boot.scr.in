@@ -38,10 +38,18 @@ then
     echo "Loading ubuntu-boot configuration..."
     load ${devtype} ${devnum}:${bootpart} ${config_addr_r} uboot/ubuntu/boot.sel
     env import ${config_addr_r}
+    setenv kernel_bootpart "${bootpart}"
+    if test "${snapd_recovery_mode}" = "try"
+    then
+        setenv prefix "uboot/ubuntu/${snap_try_kernel}/"
+    else
+        setenv prefix "uboot/ubuntu/${snap_kernel}/"
+    fi
+else
+    # Prefix within the seed partiion to the boot files
+    setenv prefix "systems/${snapd_recovery_system}/kernel/"
+    setenv kernel_bootpart "${seedpart}"
 fi
-
-# Prefix within the boot partiion to the boot files
-setenv prefix systems/${snapd_recovery_system}/kernel/
 
 setenv console "console=ttyMV0,115200 earlycon=ar3700_uart,0xd0012000"
 setenv bootargs "${console} rw snapd_recovery_mode=${snapd_recovery_mode} snapd_recovery_system=${snapd_recovery_system}"
@@ -50,18 +58,20 @@ setenv bootargs "${console} rw snapd_recovery_mode=${snapd_recovery_mode} snapd_
 if test "${use_fitimage}" = "0"
 then
     echo "Loading ${prefix}${kernel_name}..."
-    load ${devtype} ${devnum}:${seedpart} ${kernel_addr_r} ${prefix}${kernel_name}
+    load ${devtype} ${devnum}:${kernel_bootpart} ${kernel_addr_r} "${prefix}${kernel_name}"
     # Maximum size of the decompressed kernel
-    setenv kernel_comp_size ${filesize}
+    setenv kernel_comp_size "${filesize}"
+
     echo "Loading ${prefix}${fdt_name}..."
-    load ${devtype} ${devnum}:${seedpart} ${fdt_addr_r} ${prefix}${fdt_name}
+    load ${devtype} ${devnum}:${kernel_bootpart} ${fdt_addr_r} "${prefix}${fdt_name}"
+
     echo "Loading ${prefix}${ramdisk_name}..."
-    load ${devtype} ${devnum}:${seedpart} ${ramdisk_addr_r} ${prefix}${ramdisk_name}
-    setenv ramdisk_size ${filesize}
+    load ${devtype} ${devnum}:${kernel_bootpart} ${ramdisk_addr_r} "${prefix}${ramdisk_name}"
+    setenv ramdisk_size "${filesize}"
 
     booti ${kernel_addr_r} ${ramdisk_addr_r}:${ramdisk_size} ${fdt_addr_r}
 else
     echo "Loading ${prefix}${fitimage_name}..."
-    load ${devtype} ${devnum}:${seedpart} ${kernel_addr_r} ${prefix}${fitimage_name}
+    load ${devtype} ${devnum}:${kernel_bootpart} ${kernel_addr_r} "${prefix}${fitimage_name}"
     bootm ${kernel_addr_r}
 fi
