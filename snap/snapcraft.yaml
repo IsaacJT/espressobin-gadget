@@ -89,6 +89,7 @@ parts:
       - a3700-utils
       - mvddr
       - u-boot
+      - optee-os
     plugin: nil
     source: https://github.com/MarvellEmbeddedProcessors/atf-marvell.git
     source-type: git
@@ -103,6 +104,8 @@ parts:
         WTP=${SNAPCRAFT_PART_SRC}/../../a3700-utils/build \
         MV_DDR_PATH=${SNAPCRAFT_PART_SRC}/../../mvddr/build \
         PLAT=a3700 \
+        NEED_BL32=yes \
+        BL32=${SNAPCRAFT_PART_SRC}/../../optee-os/install/tee.bin \
         BL33=${SNAPCRAFT_PART_SRC}/../../u-boot/install/u-boot.bin \
         all fip
       cp ${SNAPCRAFT_PART_BUILD}/build/a3700/debug/{flash-image.bin,uart-images.tgz} ${SNAPCRAFT_PART_INSTALL}/
@@ -177,8 +180,8 @@ parts:
       # add optee-fde TA
       cp -r ${SNAPCRAFT_STAGE}/optee-fde/ta/fde_key_handler ${SNAPCRAFT_PART_BUILD}/ta/
       # determine keys to be used
-      TA_PUBLIC_KEY="${SNAPCRAFT_STAGE}/ta-keys/ta_public.pem"
-      TA_SIGN_KEY="${SNAPCRAFT_STAGE}/ta-keys/ta_private.pem"
+      export TA_PUBLIC_KEY="${SNAPCRAFT_STAGE}/ta-keys/ta_public.pem"
+      export TA_SIGN_KEY="${SNAPCRAFT_STAGE}/ta-keys/ta_private.pem"
       make O=${SNAPCRAFT_PART_BUILD}/out -j$(nproc)
       make O=${SNAPCRAFT_PART_BUILD}/out -j$(nproc) \
             CFG_EARLY_TA=y \
