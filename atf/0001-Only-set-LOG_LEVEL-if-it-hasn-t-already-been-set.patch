@@ -1,0 +1,32 @@
+From 3c1ec173201c5712efd7e4f8e63190789bca333b Mon Sep 17 00:00:00 2001
+From: Isaac True <isaac.true@canonical.com>
+Date: Fri, 11 Feb 2022 11:24:04 +0100
+Subject: [PATCH] Only set LOG_LEVEL if it hasn't already been set
+
+Signed-off-by: Isaac True <isaac.true@canonical.com>
+---
+ Makefile | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index 85b8628b..b898b6ac 100644
+--- a/Makefile
++++ b/Makefile
+@@ -87,12 +87,12 @@ ifneq (${DEBUG}, 0)
+         TF_CFLAGS	+= 	-g
+         ASFLAGS		+= 	-g -Wa,--gdwarf-2
+         # Use LOG_LEVEL_INFO by default for debug builds
+-        LOG_LEVEL	:=	40
++        LOG_LEVEL	?=	40
+ else
+         BUILD_TYPE	:=	release
+         $(eval $(call add_define,NDEBUG))
+         # Use LOG_LEVEL_NOTICE by default for release builds
+-        LOG_LEVEL	:=	20
++        LOG_LEVEL	?=	20
+ endif
+ 
+ # Default build string (git branch and commit)
+-- 
+2.25.1
+

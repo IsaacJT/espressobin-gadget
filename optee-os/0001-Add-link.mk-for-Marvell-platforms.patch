@@ -1,0 +1,30 @@
+From 0627e7cfd6e5011ee10c0dbad34cada713da9160 Mon Sep 17 00:00:00 2001
+From: Isaac True <isaac.true@canonical.com>
+Date: Fri, 11 Feb 2022 11:08:43 +0100
+Subject: [PATCH] Add link.mk for Marvell platforms
+
+- This allows generating a binary optee file from the .elf
+
+Signed-off-by: Isaac True <isaac.true@canonical.com>
+---
+ core/arch/arm/plat-marvell/link.mk | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+ create mode 100644 core/arch/arm/plat-marvell/link.mk
+
+diff --git a/core/arch/arm/plat-marvell/link.mk b/core/arch/arm/plat-marvell/link.mk
+new file mode 100644
+index 00000000..e3d015ee
+--- /dev/null
++++ b/core/arch/arm/plat-marvell/link.mk
+@@ -0,0 +1,8 @@
++include core/arch/arm/kernel/link.mk
++
++all: $(link-out-dir)/tee-raw.bin
++
++cleanfiles += $(link-out-dir)/tee-raw.bin
++$(link-out-dir)/tee-raw.bin: $(link-out-dir)/tee.elf scripts/gen_tee_bin.py
++	@$(cmd-echo-silent) '  GEN     $@'
++	$(q)scripts/gen_tee_bin.py --input $< --out_tee_raw_bin $@
+-- 
+2.25.1
+
