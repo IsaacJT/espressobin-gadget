@@ -11,7 +11,7 @@ volumes:
         content:
           - source: flash-image.bin
             target: /
-          - source: uart-images.tgz
+          - source: uart-images.tgz.bin
             target: /
           - source: boot.scr
             target: /

@@ -54,7 +54,7 @@ else
 fi
 
 setenv console "console=ttyMV0,115200 earlycon=ar3700_uart,0xd0012000"
-setenv bootargs "${console} rw snapd_recovery_mode=${snapd_recovery_mode} snapd_recovery_system=${snapd_recovery_system}"
+setenv bootargs "${console} rw snapd_recovery_mode=${snapd_recovery_mode} snapd_recovery_system=${snapd_recovery_system} ${bootargs}"
 
 # Load all files
 if test "${use_fitimage}" = "0"

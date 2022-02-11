@@ -75,24 +75,22 @@ parts:
     source-depth: 1
     build-environment:
       - PATH: "/usr/lib/ccache:${PATH}"
-    build-packages:
-      - libcrypto++-dev
     override-build: |
-      # Host tools which do not need to be cross-compiled
-      make -C wtptp/src/TBB_Linux -f TBB_linux.mak \
-        INCDIR=/usr/include/crypto++/ \
-        -j $(nproc)
-      make -C wtptp/src/Wtpdownloader_Linux -f makefile.mk \
-        -j $(nproc)
+      # # Host tools which do not need to be cross-compiled
+      # make -C wtptp/src/TBB_Linux -f TBB_linux.mak \
+      #   INCDIR=/usr/include/crypto++/ \
+      #   -j $(nproc)
+      # make -C wtptp/src/Wtpdownloader_Linux -f makefile.mk \
+      #   -j $(nproc)
 
-      # Need to copy the compiled binaries to where the ATF build process expects it to be
-      mkdir -p ${SNAPCRAFT_PART_BUILD}/wtptp/linux
-      cp ${SNAPCRAFT_PART_BUILD}/wtptp/src/TBB_Linux/release/TBB_linux \
-        ${SNAPCRAFT_PART_BUILD}/wtptp/linux/tbb_linux
-      cp ${SNAPCRAFT_PART_BUILD}/wtptp/src/Wtpdownloader_Linux/WtpDownload_linux \
-        ${SNAPCRAFT_PART_BUILD}/wtptp/linux/WtpDownload_linux
+      # # Need to copy the compiled binaries to where the ATF build process expects it to be
+      # mkdir -p ${SNAPCRAFT_PART_BUILD}/wtptp/linux
+      # cp ${SNAPCRAFT_PART_BUILD}/wtptp/src/TBB_Linux/release/TBB_linux \
+      #   ${SNAPCRAFT_PART_BUILD}/wtptp/linux/tbb_linux
+      # cp ${SNAPCRAFT_PART_BUILD}/wtptp/src/Wtpdownloader_Linux/WtpDownload_linux \
+      #   ${SNAPCRAFT_PART_BUILD}/wtptp/linux/WtpDownload_linux
 
-      # The rest of this package will be built by atf; copy sources
+      # # The rest of this package will be built by atf; copy sources
       cp -r ${SNAPCRAFT_PART_SRC}/* ${SNAPCRAFT_PART_BUILD}/
   atf:
     after:
@@ -101,18 +99,19 @@ parts:
       - u-boot
       - optee-os
     plugin: nil
-    source: https://github.com/MarvellEmbeddedProcessors/atf-marvell.git
+    source: https://github.com/ARM-software/arm-trusted-firmware.git
     source-type: git
-    source-branch: atf-v1.5-armada-18.12
+    source-branch: v2.6
     source-depth: 1
-    override-pull: |
-      snapcraftctl pull
-      patch -p1 < ${SNAPCRAFT_PROJECT_DIR}/atf/0001-Only-set-LOG_LEVEL-if-it-hasn-t-already-been-set.patch
     build-environment:
       - PATH: "/usr/lib/ccache:${PATH}"
     build-packages:
       - libmbedtls-dev
       - libconfig-dev
+      - libcrypto++-dev
+    override-pull: |
+      snapcraftctl pull
+      patch -p1 < ${SNAPCRAFT_PROJECT_DIR}/atf/0001-plat-marvell-armada-enable-opteed-for-a3k.patch
     # See http://wiki.espressobin.net/tiki-index.php?page=Build+From+Source+-+Bootloader#Build_examples for more info
     override-build: |
       # This build only supports the 1GB DDR3 variant
@@ -122,11 +121,13 @@ parts:
         WTP=${SNAPCRAFT_PART_SRC}/../../a3700-utils/build \
         MV_DDR_PATH=${SNAPCRAFT_PART_SRC}/../../mvddr/build \
         PLAT=a3700 \
-        NEED_BL32=yes \
+        SPD=opteed \
         BL32=${SNAPCRAFT_PART_SRC}/../../optee-os/install/tee.bin \
         BL33=${SNAPCRAFT_PART_SRC}/../../u-boot/install/u-boot.bin \
-        all fip
-      cp ${SNAPCRAFT_PART_BUILD}/build/a3700/debug/{flash-image.bin,uart-images.tgz} ${SNAPCRAFT_PART_INSTALL}/
+        CRYPTOPP_LIBDIR=/usr/lib \
+        CRYPTOPP_INCDIR=/usr/include/crypto++/ \
+        mrvl_uart mrvl_flash
+      cp ${SNAPCRAFT_PART_BUILD}/build/a3700/debug/{flash-image.bin,uart-images.tgz.bin} ${SNAPCRAFT_PART_INSTALL}/
   # If the prepare-device step is not required (i.e. not using serial-vault)
   # then comment this section out
   prepare-device:
@@ -180,8 +181,6 @@ parts:
     source-type: git
     source-tag: 3.10.0
     source-depth: 1
-    build-environment:
-      - PATH: "/usr/lib/ccache:${PATH}"
     override-pull: |
       snapcraftctl pull
       patch -p1 < ${SNAPCRAFT_PROJECT_DIR}/optee-os/0001-Add-link.mk-for-Marvell-platforms.patch
@@ -192,11 +191,13 @@ parts:
       export CROSS_COMPILE_ta_arm64="${SNAPCRAFT_ARCH_TRIPLET}-"
       export CFG_USER_TA_TARGETS="ta_arm64"
       export CFG_ARM64_core=y
-      export DEBUG=y \
-      export CFG_TEE_CORE_LOG_LEVEL=4 \
-      export CFG_TEE_TA_LOG_LEVEL=4 \
+      export DEBUG=y
+      export CFG_TEE_CORE_DEBUG=y
+      export CFG_TEE_CORE_LOG_LEVEL=4
+      export CFG_TEE_TA_LOG_LEVEL=4
       export CFG_TEE_BENCHMARK=n
-      export CFG_CORE_HEAP_SIZE=262144
+      export CFG_CC_OPTIMIZE_FOR_SIZE=y
+      export CFG_WITH_PAGER=n
       # set Marvell Armada 3720 platform
       export PLATFORM=marvell
       export PLATFORM_FLAVOR=armada3700
@@ -211,10 +212,6 @@ parts:
             EARLY_TA_PATHS="out/ta/pkcs11/fd02c9da-306c-48c7-a49c-bbd827ae86ee.stripped.elf \
                             out/ta/trusted_keys/f04a0fe7-1f5d-4b9b-abf7-619b85b4ce8c.stripped.elf \
                             out/ta/fde_key_handler/fd1b2a86-3668-11eb-adc1-0242ac120002.stripped.elf"
-      # ${SNAPCRAFT_ARCH_TRIPLET}-objcopy \
-      #       -O binary \
-      #       ${SNAPCRAFT_PART_BUILD}/out/core/tee.elf \
-      #       ${SNAPCRAFT_PART_INSTALL}/tee.bin
       cp ${SNAPCRAFT_PART_BUILD}/out/core/tee-raw.bin ${SNAPCRAFT_PART_INSTALL}/tee.bin
     prime:
       - -*
