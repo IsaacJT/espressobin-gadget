@@ -90,6 +90,8 @@ parts:
     source-type: git
     source-branch: atf-v1.5-armada-18.12
     source-depth: 1
+    build-packages:
+      - gcc-arm-linux-gnueabihf
     # See http://wiki.espressobin.net/tiki-index.php?page=Build+From+Source+-+Bootloader#Build_examples for more info
     override-build: |
       # This build only supports the 1GB DDR3 variant
