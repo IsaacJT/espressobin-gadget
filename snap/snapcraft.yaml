@@ -12,10 +12,6 @@ architectures:
       - arm64
     run-on: arm64
 
-package-repositories:
-  - type: apt
-    ppa: snappy-dev/image
-
 confinement: strict
 grade: stable
 
