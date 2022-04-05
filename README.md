@@ -5,8 +5,7 @@ This repository contains the official Ubuntu Core gadget snap for the [Marvell E
 See these other repositories for building an Ubuntu Core image:
 
 - https://github.com/IsaacJT/espressobin-kernel-snap
-- https://github.com/IsaacJT/espressobin-core-model
-
+- 
 ## Gadget Snaps
 
 Gadget snaps are a special type of snaps that contain device specific support code and data. You can read more about them in the [snapd wiki](https://github.com/snapcore/snapd/wiki/Gadget-snap).
