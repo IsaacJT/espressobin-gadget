@@ -85,6 +85,8 @@ parts:
     source-type: git
     source-branch: master
     source-depth: 1
+    build-environment:
+      - PATH: "/usr/lib/ccache:${PATH}"
     build-packages:
       - libcrypto++-dev
     override-build: |
@@ -115,6 +117,8 @@ parts:
     source-type: git
     source-branch: atf-v1.5-armada-18.12
     source-depth: 1
+    build-environment:
+      - PATH: "/usr/lib/ccache:${PATH}"
     build-packages:
       - gcc-arm-linux-gnueabihf
     # See http://wiki.espressobin.net/tiki-index.php?page=Build+From+Source+-+Bootloader#Build_examples for more info
