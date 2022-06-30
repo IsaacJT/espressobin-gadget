@@ -17,32 +17,15 @@ grade: stable
 
 parts:
   u-boot:
-    plugin: make
-    source: https://github.com/u-boot/u-boot.git
-    source-type: git
-    source-branch: v2022.01
-    source-depth: 1
-    override-pull: |
-      snapcraftctl pull
-      git am ${SNAPCRAFT_PROJECT_DIR}/u-boot/0001-arm-mvebu-Updated-environment-for-Ubuntu-Core.patch
-      git am ${SNAPCRAFT_PROJECT_DIR}/u-boot/0002-arm-mvebu-Enable-support-for-FIT-images.patch
-    override-build: |
-      make ARCH=arm mvebu_espressobin-88f3720_defconfig
-      make ARCH=arm CROSS_COMPILE=aarch64-linux-gnu- -j $(nproc)
-      cp ${SNAPCRAFT_PART_BUILD}/u-boot.bin ${SNAPCRAFT_PART_INSTALL}/
-    build-packages:
-      - libpython2.7-dev
-      - bc
-      - build-essential
-      - on arm64:
-        - gcc
-        - binutils
-      - else:
-        - gcc-${SNAPCRAFT_ARCH_TRIPLET}
-        - binutils-${SNAPCRAFT_ARCH_TRIPLET}
+    plugin: nil
+    stage-packages:
+      - u-boot-mvebu
+    organize:
+      usr/lib/u-boot/mvebu_espressobin-88f3720/u-boot.bin: u-boot.bin
+    stage:
+      - -*
     prime:
-      - boot.sel
-      - uboot.conf
+      - -*
 
   # U-Boot script
   boot-scr:
@@ -51,10 +34,12 @@ parts:
     plugin: nil
     source: u-boot
     override-build: |
-      ../../u-boot/build/tools/mkimage \
+      mkimage \
         -A arm64 -T script -C none -n 'Boot Script' \
         -d ${SNAPCRAFT_PART_SRC}/boot.scr \
         ${SNAPCRAFT_PART_INSTALL}/boot.scr
+    build-packages:
+      - u-boot-tools
 
   # Make an empty environment file so that Ubuntu Core can edit it later
   boot-sel:
@@ -62,8 +47,10 @@ parts:
       - u-boot
     plugin: nil
     override-build: |
-      ../../u-boot/build/tools/mkenvimage \
+      mkenvimage \
         -r -s 4096 -o ${SNAPCRAFT_PART_INSTALL}/boot.sel - < /dev/null
+    build-packages:
+      - u-boot-tools
 
   # Required by Ubuntu Core
   uboot-conf:
